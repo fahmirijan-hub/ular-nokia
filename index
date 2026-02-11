@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permainan Ular Nokia - Wrap Around</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid #fff;
+            background-color: #000;
+            max-width: 100%;
+            height: auto;
+        }
+        #score {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        #controls {
+            font-size: 16px;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Permainan Ular Nokia - Wrap Around</h1>
+    <div id="score">Skor: 0</div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="controls">
+        <p><strong>Di Laptop:</strong> Gunakan tombol panah.</p>
+        <p><strong>Di HP:</strong> Swipe di kanvas untuk bergerak.</p>
+        <p><strong>Mode Wrap Around:</strong> Ular menembus tembok dan muncul dari sisi berlawanan.</p>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+
+        let snake = [{x: 10, y: 10}];
+        let food = {x: 15, y: 15};
+        let dx = 0;
+        let dy = 0;
+        let score = 0;
+
+        // Variabel untuk kontrol sentuh
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        function drawGame() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Gambar ular
+            ctx.fillStyle = '#0f0';
+            for (let segment of snake) {
+                ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize - 2, gridSize - 2);
+            }
+
+            // Gambar makanan
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+        }
+
+        function moveSnake() {
+            let head = {x: snake[0].x + dx, y: snake[0].y + dy};
+
+            // Wrap around: Jika keluar batas, muncul dari sisi berlawanan
+            if (head.x < 0) head.x = tileCount - 1;
+            if (head.x >= tileCount) head.x = 0;
+            if (head.y < 0) head.y = tileCount - 1;
+            if (head.y >= tileCount) head.y = 0;
+
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                document.getElementById('score').textContent = 'Skor: ' + score;
+                food = {x: Math.floor(Math.random() * tileCount), y: Math.floor(Math.random() * tileCount)};
+            } else {
+                snake.pop();
+            }
+        }
+
+        function checkCollision() {
+            const head = snake[0];
+            // Hanya cek tabrakan dengan tubuh sendiri (tidak lagi dengan tembok)
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function gameLoop() {
+            moveSnake();
+            if (checkCollision()) {
+                alert('Game Over! Skor: ' + score);
+                snake = [{x: 10, y: 10}];
+                dx = 0;
+                dy = 0;
+                score = 0;
+                document.getElementById('score').textContent = 'Skor: 0';
+                food = {x: 15, y: 15};
+            }
+            drawGame();
+        }
+
+        // Kontrol keyboard (laptop)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp' && dy === 0) { dx = 0; dy = -1; }
+            if (e.key === 'ArrowDown' && dy === 0) { dx = 0; dy = 1; }
+            if (e.key === 'ArrowLeft' && dx === 0) { dx = -1; dy = 0; }
+            if (e.key === 'ArrowRight' && dx === 0) { dx = 1; dy = 0; }
+        });
+
+        // Kontrol sentuh (HP) - Swipe di kanvas
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            const touch = e.changedTouches[0];
+            const touchEndX = touch.clientX;
+            const touchEndY = touch.clientY;
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+
+            // Tentukan arah berdasarkan swipe (minimal jarak 30px)
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                if (deltaX > 30 && dx === 0) { dx = 1; dy = 0; } // Kanan
+                else if (deltaX < -30 && dx === 0) { dx = -1; dy = 0; } // Kiri
+            } else {
+                if (deltaY > 30 && dy === 0) { dx = 0; dy = 1; } // Bawah
+                else if (deltaY < -30 && dy === 0) { dx = 0; dy = -1; } // Atas
+            }
+        });
+
+        setInterval(gameLoop, 100);
+    </script>
+</body>
+</html>
